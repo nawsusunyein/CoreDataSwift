@@ -13,7 +13,6 @@ class ViewController: UIViewController {
 
     @IBOutlet weak var tableView: UITableView!
     
-    var names : [String] = []
     var people : [NSManagedObject] = []
     
     override func viewDidLoad() {
@@ -23,13 +22,33 @@ class ViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
     }
     
+    override func viewWillAppear(_ animated : Bool){
+        super.viewWillAppear(animated)
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else{
+            return
+        }
+        
+        //1
+        let managedContext = appDelegate.persistentContainer.viewContext
+        
+        //2
+        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "Person")
+        
+        //3
+        do{
+            people = try managedContext.fetch(fetchRequest)
+        }catch let error as NSError{
+            print("Could not fetch : \(error) , \(error.userInfo)")
+        }
+    }
+    
     @IBAction func addName(_ sender: Any) {
         let addNameAlertController = UIAlertController(title: "New Name", message: "Add new name", preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default, handler: {_ in
             guard let textField = addNameAlertController.textFields?.first,let saveName = textField.text else{
                 return
             }
-            self.names.append(saveName)
+            self.saveName(name: saveName)
             self.tableView.reloadData()
         })
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in})
@@ -41,7 +60,27 @@ class ViewController: UIViewController {
     }
     
     private func saveName(name : String){
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else{
+            return
+        }
         
+        //1
+        let managedContext = appDelegate.persistentContainer.viewContext
+        
+        //2
+        let entity = NSEntityDescription.entity(forEntityName: "Person", in: managedContext)!
+        let person = NSManagedObject(entity: entity, insertInto: managedContext)
+        
+        //3
+        person.setValue(name, forKey: "name")
+        
+        //4
+        do{
+            try managedContext.save()
+            people.append(person)
+        }catch let error as NSError{
+            print("Could not save \(error) , \(error.userInfo)")
+        }
     }
 
 }
